@@ -1,48 +1,60 @@
 # -*- coding: utf-8 -*-
-"""   
-    Created on Sat Sep 21 14:49:40 2018
-      I found most of this online and have just been messing around with it trying
-      to figure it out. I couldn't fnd out how to use the defauld iris data so i used
-      a persons online file because he explaind how to mess with it. I struggled a lot
-      but this was my best atempt.
+#CS450 01Prove
+#author: Shawn Lilly
 """
-# Load the libraries
+    Created on Fri Sep 21 14:49:40 2018
+     This is a redo of my first atempt to get the hard coded classifier working
+"""
 import numpy as np
-import pandas as pa
-from sklearn import datasets
-from sklearn import model_selection
-from sklearn.metrics import accuracy_score
-from sklearn.naive_bayes import GaussianNB
-from sklearn.metrics import confusion_matrix
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.model_selection import train_test_split
+from sklearn import datasets # for iris dataset
+from sklearn.metrics import accuracy_score # to get accuracy
+from sklearn.naive_bayes import GaussianNB # classifier
+from sklearn.model_selection import train_test_split  # function to make training easier
 
 
-#class myclassifier:
-    #add fit and predict methods
+class HardcodedClassifier:
+    def __init__(self): # constructor
+        pass
     
-# Load in the dataset
-url = "https://raw.githubusercontent.com/jbrownlee/Datasets/master/iris.csv"
-names = ['sepal-length', 'sepal-width', 'petal-length', 'petal-width', 'class']
-dataset = pa.read_csv(url, names=names)
+    def fit(self, data, target): # placeholder
+        return HardcodedClassifier()
+    
+    def predict(self, data_test): # placeholder 
+        return np.zeros((data_test.shape[0]), dtype = int)
+    
+    def score(self, x_test, y_test, sample_weight=None): # find acuracy
+        return accuracy_score(y_test, self.predict(x_test), sample_weight = sample_weight)
 
-# this will Split-out the dataset
-array = dataset.values
-X = array[:,0:4]
-Y = array[:,4]
-validation_size = 0.30 # 30 percent to test on
-seed = 10 #randomizing value
-X_train, X_validation, Y_train, Y_validation = model_selection.train_test_split(X, Y, test_size=validation_size, random_state=seed)
-#above randomizes and makes matrix
 
-# these are the Test options and evaluation metric
-seed = 7
-scoring = 'accuracy'
-#Accuracy =      #TP + #FP
-           #TP + #FP + #TN + #FN
+"""
+where all the magic happens
+"""
+def main():
+    iris = datasets.load_iris() # get iris data set
+    irisD = iris.data
+    irisT = iris.target  
+    # Test set 30%
+    data_train, data_test, target_train, target_test = train_test_split(irisD, irisT, test_size = .3)
 
-#Make predictions on validation dataset
-knn = KNeighborsClassifier() #this is where I should implament my classifier
-knn.fit(X_train, Y_train)
-predictions = knn.predict(X_validation)
-print(confusion_matrix(Y_validation, predictions))
+    model_iris_gaussian_nb(data_test, data_train, target_test, target_train)
+    model_iris_hardcoded(data_test, data_train, target_test, target_train)
+    
+    # GaussianNB classifier use
+def model_iris_gaussian_nb(data_test, data_train, target_test, target_train):
+    gnb_classifier = GaussianNB()
+    gnb_classifier.fit(data_train, target_train)
+    gnb_score = gnb_classifier.score(data_test, target_test)
+    # print the gaussianNB acuracy
+    print("(GaussianNB) Predicted accuracy: {:.0f}%".format(gnb_score * 100))
+    
+    # Hardcoded clasifier use
+def model_iris_hardcoded(data_test, data_train, target_test, target_train):
+    hc_classifier = HardcodedClassifier()
+    hc_classifier.fit(data_train, target_train)
+    hcc_score = hc_classifier.score(data_test, target_test)
+    # print my hardcoded acuracy
+    print("(Hardcoded) Predicted accuracy: {:.0f}%".format(hcc_score * 100))
+
+
+if __name__ == '__main__':
+    main()
