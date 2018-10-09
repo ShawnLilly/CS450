@@ -1,19 +1,14 @@
 # -*- coding: utf-8 -*-
-#CS450 02Prove
+#CS450 03Prove
 #author: Shawn Lilly
 
 import numpy as np 
-from sklearn import datasets # for iris dataset
+import pandas as pd
 from sklearn.metrics import accuracy_score # to get accuracy
-from sklearn.neighbors import KNeighborsClassifier # Built in KNN
-from sklearn.model_selection import train_test_split # function to make training easier
+from sklearn.model_selection import cross_val_score
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor # Built in KNN
 
 
-
-"""
-K nearest neighbor will go through comparing the iris flower to K of its nearest
-neighbors to predict what type it is.
-"""
 class KNNClassifier: # actual KNN class itself
     def __init__(self, k, data=None, target=None): # constructor
         if data is None:
@@ -30,14 +25,14 @@ class KNNClassifier: # actual KNN class itself
         self.data = data
         return self
     
-    def predict(self, test_data): # find out which neighbors are clossest
-        n_inputs = np.shape(test_data)[0]
-        closest = np.zeros(n_inputs)
+    def predict(self, testData): # find out which neighbors are clossest
+        nInputs = np.shape(testData)[0]
+        closest = np.zeros(nInputs)
         
         # all the maths for finding the nearest neighbors
-        for n in range(n_inputs):
+        for n in range(nInputs):
             # find distances
-            distance = np.sum((self.data - test_data[n, :])**2, axis = 1)
+            distance = np.sum((self.data - testData[n, :])**2, axis = 1)
             # find the nearest neighbours
             indices = np.argsort(distance, axis = 0)
             classes = np.unique(self.target[indices[:self.k]])
@@ -52,34 +47,115 @@ class KNNClassifier: # actual KNN class itself
                 closest[n] = np.max(counts)
         return closest
     
-    def score(self, x_test, y_test, sample_weight=None): # find acuracy
-        return accuracy_score(y_test, self.predict(x_test), sample_weight = sample_weight)
+    def score(self, xTest, yTest, sampleWeight=None): # find acuracy
+        return accuracy_score(yTest, self.predict(xTest), sampleWeight = sampleWeight)
 
 """
-where my KNN and default KNN are called and compared
-both are about the same up untill 4 neighbors
+all the magic for the car autism and mpg datasets
 """
 def main():
+    carData, carTest = carDataPreP()
+    #autData, autTest = autDataPreP()
+    mpgData, mpgTest = mpgDataPreP()
     
-    Myk = 5 # my KNN number of neighbors
-    BuiltK = 5 # built in KNN number of neighbors
+    n_neighbors = 5
     
-    iris = datasets.load_iris() # get iris data set
-    irisD = iris.data
-    irisT = iris.target
-    x_train, x_test, y_train, y_test = train_test_split(irisD, irisT, test_size = 0.3)
+    performScoreClassifier('Car', KNeighborsClassifier(n_neighbors=n_neighbors, weights='distance', n_jobs=-1, ), carData, carTest)
+    performScoreClassifier('M.P.G.', KNeighborsRegressor(n_neighbors=n_neighbors, weights='distance', n_jobs=-1, ), mpgData, mpgTest)
+
+
+def performScoreClassifier(name, classifier, data, test):
+    print(name)
+    # k-fold Cross Validation
+    scores = cross_val_score(classifier, data, test, cv=10)
+    accuracyOutput(scores)
     
+# get acuracy
+def accuracyOutput(scores):
+    print("Accuracy: {0:.0f}% +/-{1:.2f}".format(scores.mean() * 100, scores.std() * 2))
+
+
+
+#dealing with non numerical data for car dataset
+def carDataPreP():
+    # get data set from url
+    carData = pd.read_csv("https://archive.ics.uci.edu/ml/machine-learning-databases/car/car"
+                               ".data", header=None)
     
-    my_knn = KNNClassifier(Myk)
-    my_knn_model = my_knn.fit(x_train, y_train)
-    #print my KNN
-    print('My KNN accuracy: {:.0f}%'.format(100*my_knn_model.score(x_test, y_test))) 
+    # Set column names on data frame
+    columns = "buying maint doors persons lug_boot safety target".split()
+    carData.columns = columns
     
-    sklearn_nkk = KNeighborsClassifier(n_neighbors = BuiltK)
-    sklearn_nkk_model = sklearn_nkk.fit(x_train, y_train)
-    sklearn_nkk_model.predict(x_test)
-    #print built in KNN
-    print('Built in KNN accuracy: {:.0f}%'.format(100*sklearn_nkk_model.score(x_test, y_test)))
+    # turn the car data to namber values
+    columnNum = {"buying": {"vhigh": 4, "high": 3, "med": 2, "low": 1},
+                 "maint": {"vhigh": 4, "high": 3, "med": 2, "low": 1},
+                 "doors": {"2": 1, "3": 2, "4": 3, "5more": 4},
+                 "persons": {"2": 1, "4": 2, "more": 3},
+                 "lug_boot": {"small": 1, "med": 2, "big": 3},
+                 "safety": {"low": 1, "med": 2, "high": 3},
+                 "target": {"unacc": 1, "acc": 2, "good": 3, "vgood": 4}}
+    
+    carData.replace(columnNum, inplace=True)
+    
+    # split data as well as targets into separate data frames
+    carTargets = carData.iloc[:, 6:]
+    carData = carData.iloc[:, :6]
+    
+    # turn the data and target data frames into lists
+    carDataArray = carData.as_matrix()
+    carTargetsArray = carTargets.as_matrix()
+    carTargetsArray = carTargetsArray.flatten()
+    
+    return carDataArray, carTargetsArray
+
+#placeholder for autism dataset
+"""
+def autDataPreP(): 
+    # get data set from txt
+    
+    # Set column names on data frame
+    columns = "buying maint doors persons lug_boot safety target".split()
+    autData.columns = columns
+    
+    # turn the car data to namber values
+    
+    # split data as well as targets into separate data frames
+    autTargets = autData.iloc[:, 6:]
+    autData = autData.iloc[:, :6]
+    
+    # turn the data and target data frames into lists
+    autDataArray = carData.as_matrix()
+    autTargetsArray = carTargets.as_matrix()
+    autTargetsArray = carTargetsArray.flatten()
+    
+    return autDataArray, autTargetsArray
+"""
+
+#dealing with missing data for miles per gallon
+def mpgDataPreP():
+    # get data set from url
+    mpgData = pd.read_csv(
+            "https://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data",
+            delim_whitespace=True, na_values='?')
+    
+    # Set column names on data frame
+    columns = "mpg cyl disp hp weight accel year origin model".split()
+    mpgData.columns = columns
+    
+    # replace and remove missing values and connected rows rows
+    mpgData.dropna(inplace=True)
+    mpgData.drop(columns='model', inplace=True)
+    
+    # split it into data and targets
+    mpgTargets = mpgData.iloc[:, :1]
+    mpgData = mpgData.iloc[:, 1:8]
+    
+    mpgDataArray = mpgData.as_matrix()
+    mpgTargArray = mpgTargets.as_matrix()
+    mpgTargArray = mpgTargArray.flatten()
+    
+    return mpgDataArray, mpgTargArray
+
 
 if __name__ == '__main__':
     main()
